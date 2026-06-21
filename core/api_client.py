@@ -374,11 +374,60 @@ class APIClient:
 
     def discover_models(self) -> List[Dict[str, str]]:
         """
-        Discover available models from the API endpoint.
+        Discover available models from the API endpoint or CLI.
         
         Returns:
             List of model dicts with 'id' and 'name'
         """
+        if self.config.get('api_provider') == 'cli':
+            models = []
+            try:
+                import subprocess
+                import shlex
+                import os
+                
+                cli_cmd = self.config.get('cli_command', ['arsan-cli', 'chat'])
+                if isinstance(cli_cmd, str):
+                    cmd_args = shlex.split(cli_cmd)
+                else:
+                    cmd_args = list(cli_cmd)
+                
+                if cmd_args and cmd_args[-1] == 'chat':
+                    cmd_args[-1] = 'models'
+                else:
+                    cmd_args.append('models')
+                    
+                env = os.environ.copy()
+                user_env = self.config.get('env', {})
+                if isinstance(user_env, dict):
+                    for k, v in user_env.items():
+                        env[str(k)] = str(v)
+                        
+                process = subprocess.Popen(
+                    cmd_args,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    universal_newlines=True,
+                    env=env
+                )
+                stdout, stderr = process.communicate(timeout=5)
+                
+                if process.returncode == 0:
+                    for line in stdout.splitlines():
+                        line = line.strip()
+                        if not line or line.lower().startswith(('usage', 'available', 'models:', 'id', '-', 'name')):
+                            continue
+                        parts = line.split()
+                        if parts:
+                            model_id = parts[0].strip(':-*')
+                            models.append({
+                                'id': model_id,
+                                'name': line
+                            })
+            except Exception:
+                pass
+            return models
+
         models = []
         try:
             models_url = self.config['api_base'].replace('/chat/completions', '/models')
@@ -417,6 +466,7 @@ class APIClient:
         """Worker thread for streaming via a local CLI process."""
         import subprocess
         import shlex
+        import os
         
         try:
             payload = self._build_payload(messages, max_tokens, temperature, tools)
@@ -427,13 +477,20 @@ class APIClient:
             else:
                 cmd_args = list(cli_cmd)
                 
+            env = os.environ.copy()
+            user_env = self.config.get('env', {})
+            if isinstance(user_env, dict):
+                for k, v in user_env.items():
+                    env[str(k)] = str(v)
+                    
             process = subprocess.Popen(
                 cmd_args,
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 universal_newlines=True,
-                bufsize=1
+                bufsize=1,
+                env=env
             )
             
             with self.lock:
