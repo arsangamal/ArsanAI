@@ -9,9 +9,8 @@ import os
 import sys
 import traceback
 
-# Plugin directory and module prefix
+# Plugin directory for path management
 _plugin_dir = os.path.dirname(os.path.abspath(__file__))
-_plugin_prefix = 'ArsanAI.'
 
 # Add current directory to path for relative imports (only once)
 if _plugin_dir not in sys.path:
@@ -205,10 +204,17 @@ def plugin_loaded() -> None:
     """Sublime plugin lifecycle: plugin loaded."""
     global _plugin_instance
     
-    # Guard against double initialization on reload
+    # Clean up any stale instance from previous load
     if _plugin_instance is not None:
-        print("ArsanAI plugin already initialized, skipping re-initialization")
-        return
+        print("ArsanAI: Cleaning up previous instance before reload")
+        try:
+            if hasattr(_plugin_instance, 'mcp_coordinator') and _plugin_instance.mcp_coordinator:
+                _plugin_instance.mcp_coordinator.stop_all()
+            if hasattr(_plugin_instance, 'chat_view') and _plugin_instance.chat_view:
+                _plugin_instance.chat_view.close_chat_hub()
+        except Exception as e:
+            print(f"ArsanAI: Error cleaning up previous instance: {e}")
+        _plugin_instance = None
     
     try:
         _plugin_instance = ArsanAIPlugin()
@@ -237,9 +243,18 @@ def plugin_unloaded() -> None:
     _plugin_instance = None
     
     # Clean up sys.modules to prevent reload issues
-    # Remove all ArsanAI-related modules
-    modules_to_remove = [key for key in sys.modules.keys() 
-                        if key.startswith(('arsan_ai', 'core', 'ui', _plugin_prefix))]
+    # Remove all ArsanAI-related modules with proper prefixes
+    # Use the package name "ArsanAI" as the base prefix
+    package_name = __package__ or 'ArsanAI'
+    modules_to_remove = [
+        key for key in sys.modules.keys()
+        if key == 'arsan_ai' or 
+           key.startswith('arsan_ai.') or
+           key.startswith(f'{package_name}.core.') or
+           key.startswith(f'{package_name}.ui.') or
+           key == f'{package_name}.core' or
+           key == f'{package_name}.ui'
+    ]
     for module_name in modules_to_remove:
         try:
             del sys.modules[module_name]
