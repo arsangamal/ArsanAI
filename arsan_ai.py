@@ -149,15 +149,26 @@ class ArsanAIPlugin:
             for msg in history_messages
         ]
         
+        # Show thinking indicator
+        self.chat_view.show_thinking_indicator()
+        sublime.status_message("ArsanAI: Thinking...")
+        
         # Stream response
         full_response = ""
+        first_token = True
         
         def on_token(token: str) -> None:
-            nonlocal full_response
+            nonlocal first_token, full_response
+            if first_token:
+                first_token = False
+                self.chat_view.hide_thinking_indicator()
+                sublime.status_message("ArsanAI: Generating response...")
             full_response += token
             self.chat_view.stream_token(token)
         
         def on_complete(text: str, token_count: int) -> None:
+            self.chat_view.hide_thinking_indicator()
+            sublime.status_message("ArsanAI: Response complete")
             # Store in history
             if self.chat_view.current_session_id:
                 self.history_manager.add_message(
@@ -169,6 +180,8 @@ class ArsanAIPlugin:
             self.chat_view.prepare_for_user_input()
         
         def on_error(error: str) -> None:
+            self.chat_view.hide_thinking_indicator()
+            sublime.status_message("ArsanAI: Error generating response")
             self.chat_view.write_message("error", error)
             self.chat_view.prepare_for_user_input()
         
@@ -183,6 +196,9 @@ class ArsanAIPlugin:
         """Abort current generation."""
         if self.api_client:
             self.api_client.abort()
+            if self.chat_view:
+                self.chat_view.hide_thinking_indicator()
+            sublime.status_message("Generation stopped")
 
     def discover_models(self) -> list:
         """Discover available models."""

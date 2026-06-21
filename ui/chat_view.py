@@ -35,6 +35,7 @@ class ChatView:
         self.lock = threading.Lock()
         self.current_session_id = ""
         self.assistant_header_written = False
+        self.phantom_set = None
 
     def open_chat_hub(self, session_id: str = "") -> bool:
         """
@@ -308,3 +309,63 @@ Welcome to your AI assistant. Type your message below and press Ctrl+Enter (Cmd+
         """Check if chat view is visible."""
         with self.lock:
             return self.view is not None and self.view.window() is not None
+
+    def show_thinking_indicator(self) -> None:
+        """Show a thinking/processing indicator at the end of the view."""
+        with self.lock:
+            if not self.view:
+                return
+            
+            sublime.set_timeout(
+                lambda: self._show_thinking_indicator_sync(),
+                0
+            )
+
+    def _show_thinking_indicator_sync(self) -> None:
+        if not self.view:
+            return
+        
+        # If assistant header is not written, write it first
+        if not self.assistant_header_written:
+            self.view.run_command('append', {'characters': "\n\n**Assistant:**\n"})
+            self.assistant_header_written = True
+            
+        self.phantom_set = sublime.PhantomSet(self.view, "arsan_thinking")
+        
+        html = """
+        <style>
+            .thinking {
+                color: color(var(--foreground) alpha(0.5));
+                font-style: italic;
+                padding-left: 4px;
+            }
+        </style>
+        <span class="thinking">Thinking...</span>
+        """
+        
+        region = sublime.Region(self.view.size(), self.view.size())
+        phantom = sublime.Phantom(
+            region,
+            html,
+            sublime.LAYOUT_INLINE
+        )
+        self.phantom_set.update([phantom])
+        self.view.run_command('move_to', {'to': 'eof'})
+
+    def hide_thinking_indicator(self) -> None:
+        """Hide the thinking/processing indicator."""
+        with self.lock:
+            if not self.view:
+                return
+            
+            sublime.set_timeout(
+                lambda: self._hide_thinking_indicator_sync(),
+                0
+            )
+
+    def _hide_thinking_indicator_sync(self) -> None:
+        if not self.view or not hasattr(self, 'phantom_set') or not self.phantom_set:
+            return
+        
+        self.phantom_set.update([])
+        self.phantom_set = None
