@@ -233,7 +233,7 @@ class APIClient:
 
         if self.config['api_provider'] == 'openai':
             payload = {
-                "model": self.config['model'],
+                "model": self.config.get('model', ''),
                 "messages": clean_messages,
                 "max_tokens": max_tokens,
                 "temperature": temperature,
@@ -245,7 +245,7 @@ class APIClient:
             return payload
         elif self.config['api_provider'] == 'anthropic':
             return {
-                "model": self.config['model'],
+                "model": self.config.get('model', ''),
                 "messages": clean_messages,
                 "max_tokens": max_tokens,
                 "temperature": temperature,
@@ -253,7 +253,7 @@ class APIClient:
             }
         else:
             payload = {
-                "model": self.config['model'],
+                "model": self.config.get('model', ''),
                 "messages": clean_messages,
                 "max_tokens": max_tokens,
                 "temperature": temperature,
