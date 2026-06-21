@@ -6,7 +6,15 @@ Defines native workspace tools (file read, file write, patch, search) for LLM ag
 import os
 import json
 import fnmatch
-from typing import Dict, List, Any, Optional
+try:
+    from typing import Dict, List, Any, Optional
+except ImportError:
+    class _TypingStub(object):
+        def __getitem__(self, _item):
+            return self
+    _typing_stub = _TypingStub()
+    Dict = List = Any = Optional = _typing_stub
+
 
 TOOLS_SCHEMA = [
     {
