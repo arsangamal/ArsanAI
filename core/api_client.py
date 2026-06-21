@@ -90,23 +90,25 @@ class APIClient:
 
     def stream_chat(
         self,
-        messages: List[Dict[str, str]],
+        messages: List[Dict[str, Any]],
         on_token: Callable[[str], None],
-        on_complete: Callable[[str, int], None],
+        on_complete: Callable[[str, int, Optional[List[Dict[str, Any]]]], None],
         on_error: Callable[[str], None],
         max_tokens: int = 2048,
         temperature: float = 0.7,
+        tools: Optional[List[Dict[str, Any]]] = None,
     ) -> None:
         """
         Stream a chat completion asynchronously.
         
         Args:
-            messages: List of message dicts with 'role' and 'content'
+            messages: List of message dicts
             on_token: Callback for each token received
-            on_complete: Callback on completion with (full_text, token_count)
+            on_complete: Callback on completion with (full_text, token_count, tool_calls)
             on_error: Callback for errors
             max_tokens: Maximum tokens to generate
             temperature: Sampling temperature
+            tools: Optional list of tools schemas
         """
         with self.lock:
             if self.current_thread and self.current_thread.is_alive():
@@ -115,7 +117,7 @@ class APIClient:
             self.abort_signal = False
             thread = threading.Thread(
                 target=self._stream_worker,
-                args=(messages, on_token, on_complete, on_error, max_tokens, temperature),
+                args=(messages, on_token, on_complete, on_error, max_tokens, temperature, tools),
                 daemon=True,
             )
             self.current_thread = thread
@@ -123,16 +125,17 @@ class APIClient:
 
     def _stream_worker(
         self,
-        messages: List[Dict[str, str]],
+        messages: List[Dict[str, Any]],
         on_token: Callable[[str], None],
-        on_complete: Callable[[str, int], None],
+        on_complete: Callable[[str, int, Optional[List[Dict[str, Any]]]], None],
         on_error: Callable[[str], None],
         max_tokens: int,
         temperature: float,
+        tools: Optional[List[Dict[str, Any]]] = None,
     ) -> None:
         """Worker thread for streaming API calls."""
         try:
-            payload = self._build_payload(messages, max_tokens, temperature)
+            payload = self._build_payload(messages, max_tokens, temperature, tools)
             
             headers = self._build_headers()
             
@@ -147,6 +150,7 @@ class APIClient:
             full_response = ""
             token_count = 0
             parser = StreamParser()
+            streamed_tool_calls = {} # type: Dict[int, Dict[str, Any]]
             
             try:
                 response = urllib.request.urlopen(request)
@@ -168,10 +172,12 @@ class APIClient:
                         
                         if self.config['api_provider'] == 'openai':
                             token = self._extract_openai_token(event)
+                            self._accumulate_openai_tool_calls(event, streamed_tool_calls)
                         elif self.config['api_provider'] == 'anthropic':
                             token = self._extract_anthropic_token(event)
                         else:
                             token = self._extract_custom_token(event)
+                            self._accumulate_openai_tool_calls(event, streamed_tool_calls)
                         
                         if token:
                             full_response += token
@@ -182,11 +188,18 @@ class APIClient:
                 
             except urllib.error.HTTPError as e:
                 error_msg = "HTTP Error {}: {}".format(e.code, e.reason)
+                try:
+                    body = e.read().decode('utf-8', errors='ignore')
+                    if body:
+                        error_msg += "\n" + body
+                except Exception:
+                    pass
                 on_error(error_msg)
                 return
             
             if not self.abort_signal:
-                on_complete(full_response, token_count)
+                tool_calls_list = list(streamed_tool_calls.values()) if streamed_tool_calls else None
+                on_complete(full_response, token_count, tool_calls_list)
         
         except Exception as e:
             error_msg = "Error during streaming: {}\n{}".format(str(e), traceback.format_exc())
@@ -194,35 +207,94 @@ class APIClient:
 
     def _build_payload(
         self,
-        messages: List[Dict[str, str]],
+        messages: List[Dict[str, Any]],
         max_tokens: int,
         temperature: float,
+        tools: Optional[List[Dict[str, Any]]] = None,
     ) -> Dict[str, Any]:
         """Build request payload based on API provider."""
+        # Clean messages
+        clean_messages = []
+        for msg in messages:
+            clean_msg = {"role": msg["role"]}
+            if "content" in msg:
+                clean_msg["content"] = msg["content"]
+            if "tool_calls" in msg:
+                clean_msg["tool_calls"] = msg["tool_calls"]
+            if "tool_call_id" in msg:
+                clean_msg["tool_call_id"] = msg["tool_call_id"]
+            if "name" in msg:
+                clean_msg["name"] = msg["name"]
+            clean_messages.append(clean_msg)
+
         if self.config['api_provider'] == 'openai':
-            return {
+            payload = {
                 "model": self.config['model'],
-                "messages": messages,
+                "messages": clean_messages,
                 "max_tokens": max_tokens,
                 "temperature": temperature,
                 "stream": True,
             }
+            if tools:
+                payload["tools"] = tools
+                payload["tool_choice"] = "auto"
+            return payload
         elif self.config['api_provider'] == 'anthropic':
             return {
                 "model": self.config['model'],
-                "messages": messages,
+                "messages": clean_messages,
                 "max_tokens": max_tokens,
                 "temperature": temperature,
                 "stream": True,
             }
         else:
-            return {
+            payload = {
                 "model": self.config['model'],
-                "messages": messages,
+                "messages": clean_messages,
                 "max_tokens": max_tokens,
                 "temperature": temperature,
                 "stream": True,
             }
+            if tools:
+                payload["tools"] = tools
+                payload["tool_choice"] = "auto"
+            return payload
+
+    def _accumulate_openai_tool_calls(self, event: Dict[str, Any], tool_calls: Dict[int, Dict[str, Any]]) -> None:
+        """Accumulate streamed tool calls from OpenAI SSE event."""
+        try:
+            choices = event.get('choices', [])
+            if not choices:
+                return
+            
+            delta = choices[0].get('delta', {})
+            delta_tool_calls = delta.get('tool_calls', [])
+            
+            for tc in delta_tool_calls:
+                idx = tc.get('index')
+                if idx is None:
+                    continue
+                
+                if idx not in tool_calls:
+                    tool_calls[idx] = {
+                        "id": "",
+                        "type": "function",
+                        "function": {
+                            "name": "",
+                            "arguments": ""
+                        }
+                    }
+                
+                if tc.get('id'):
+                    tool_calls[idx]['id'] = tc['id']
+                
+                func = tc.get('function', {})
+                if func.get('name'):
+                    tool_calls[idx]['function']['name'] = func['name']
+                if func.get('arguments'):
+                    tool_calls[idx]['function']['arguments'] += func['arguments']
+        except Exception:
+            pass
 
     def _build_headers(self) -> Dict[str, str]:
         """Build HTTP headers based on API provider."""

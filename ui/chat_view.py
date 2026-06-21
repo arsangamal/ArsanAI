@@ -398,3 +398,31 @@ Welcome to your AI assistant. Type your message below and press Ctrl+Enter (Cmd+
         else:
             self.view.run_command('move_to', {'to': 'eof'})
             self.view.run_command('insert', {'characters': text})
+
+    def write_tool_output(self, tool_name: str, output: str) -> None:
+        """
+        Write tool output to the chat view.
+        
+        Args:
+            tool_name: Name of the executed tool
+            output: Result/output of the tool
+        """
+        with self.lock:
+            if not self.view:
+                return
+            
+            sublime.set_timeout(
+                lambda: self._write_tool_output_sync(tool_name, output),
+                0
+            )
+
+    def _write_tool_output_sync(self, tool_name: str, output: str) -> None:
+        """Synchronous tool output write (must be called from UI thread)."""
+        if not self.view:
+            return
+        
+        formatted = "\n⚙️ **Tool Run:** `{}`\n```\n{}\n```\n".format(tool_name, output)
+        self.view.run_command('append', {'characters': formatted})
+        self.view.run_command('move_to', {'to': 'eof'})
+        self.assistant_header_written = False
+

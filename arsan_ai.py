@@ -8,6 +8,7 @@ import sublime_plugin
 import os
 import sys
 import traceback
+import json
 
 # Plugin directory for path management
 _plugin_dir = os.path.dirname(os.path.abspath(__file__))
@@ -22,9 +23,11 @@ try:
     from core.history_manager import HistoryManager
     from core.mcp_coordinator import MCPCoordinator
     from core.workspace_manager import WorkspaceManager
+    from core.agent_tools import AgentTools
     from ui.chat_view import ChatView
     from ui.autocomplete import ArsanAiAutocomplete
 except ImportError as e:
+
     print("ArsanAI: Import error during plugin load: {}".format(e))
     traceback.print_exc()
     raise
@@ -52,6 +55,7 @@ class ArsanAIPlugin:
         self.history_manager = HistoryManager(self.cache_dir)
         self.mcp_coordinator = None
         self.workspace_manager = None
+        self.agent_tools = None
         self.chat_view = None
         self.autocomplete = None
         self.window = None
@@ -102,6 +106,7 @@ class ArsanAIPlugin:
         folders = window.folders()
         if folders:
             self.workspace_manager = WorkspaceManager(folders[0])
+            self.agent_tools = AgentTools(folders[0])
 
     def open_chat_hub(self, session_id: str = "") -> None:
         """Open the chat hub interface."""
@@ -129,25 +134,34 @@ class ArsanAIPlugin:
         
         # Store in history (create new session if none exists)
         if not self.chat_view.current_session_id:
-            title = message[:30] + ("..." if len(message) > 30 else "")
+            title = message[:30] + ("..." if len(message) > 30 else "") if message else "Agent Task"
             model = self.settings.get('api', {}).get('model', 'unknown')
             self.chat_view.current_session_id = self.history_manager.create_session(
                 title=title,
                 model=model
             )
             
-        self.history_manager.add_message(
-            self.chat_view.current_session_id,
-            "user",
-            message
-        )
+        if message:
+            self.history_manager.add_message(
+                self.chat_view.current_session_id,
+                "user",
+                message
+            )
         
         # Get chat context from history manager
         history_messages = self.history_manager.get_session_messages(self.chat_view.current_session_id)
-        messages = [
-            {"role": msg["role"], "content": msg["content"]}
-            for msg in history_messages
-        ]
+        messages = []
+        for msg in history_messages:
+            clean_msg = {"role": msg["role"]}
+            if "content" in msg:
+                clean_msg["content"] = msg["content"]
+            if "tool_calls" in msg:
+                clean_msg["tool_calls"] = msg["tool_calls"]
+            if "tool_call_id" in msg:
+                clean_msg["tool_call_id"] = msg["tool_call_id"]
+            if "name" in msg:
+                clean_msg["name"] = msg["name"]
+            messages.append(clean_msg)
         
         # Show thinking indicator
         self.chat_view.show_thinking_indicator()
@@ -157,7 +171,7 @@ class ArsanAIPlugin:
         full_response = ""
         first_token = True
         
-        def on_token(token: str) -> None:
+        def on_token(token):
             nonlocal first_token, full_response
             if first_token:
                 first_token = False
@@ -166,20 +180,61 @@ class ArsanAIPlugin:
             full_response += token
             self.chat_view.stream_token(token)
         
-        def on_complete(text: str, token_count: int) -> None:
+        def on_complete(text, token_count, tool_calls=None):
             self.chat_view.hide_thinking_indicator()
-            sublime.status_message("ArsanAI: Response complete")
+            
             # Store in history
             if self.chat_view.current_session_id:
                 self.history_manager.add_message(
                     self.chat_view.current_session_id,
                     "assistant",
-                    text,
-                    token_count
+                    text if text else None,
+                    token_count,
+                    tool_calls=tool_calls
                 )
-            self.chat_view.prepare_for_user_input()
+                
+            if tool_calls:
+                sublime.status_message("ArsanAI: Executing agent tools...")
+                
+                # Execute tools sequentially on the background thread
+                for tc in tool_calls:
+                    tc_name = tc.get('function', {}).get('name', 'unknown')
+                    tc_args_str = tc.get('function', {}).get('arguments', '{}')
+                    
+                    try:
+                        tc_args = json.loads(tc_args_str) if tc_args_str else {}
+                    except Exception:
+                        tc_args = {}
+                    
+                    status_msg = "Running tool `{}`...".format(tc_name)
+                    sublime.set_timeout(lambda: sublime.status_message("ArsanAI: " + status_msg), 0)
+                    
+                    if self.agent_tools:
+                        result = self.agent_tools.execute_tool(tc_name, tc_args)
+                    else:
+                        result = "Error: Agent tools are not initialized."
+                    
+                    # Log/Write tool output to chat view
+                    if self.chat_view:
+                        self.chat_view.write_tool_output(tc_name, result)
+                    
+                    # Store tool response in history
+                    if self.chat_view.current_session_id:
+                        self.history_manager.add_message(
+                            session_id=self.chat_view.current_session_id,
+                            role="tool",
+                            content=result,
+                            tool_call_id=tc.get('id', ''),
+                            name=tc_name
+                        )
+                
+                # Continue the loop
+                sublime.set_timeout(lambda: self.send_chat_message(""), 0)
+            else:
+                sublime.status_message("ArsanAI: Response complete")
+                self.chat_view.prepare_for_user_input()
         
-        def on_error(error: str) -> None:
+        def on_error(error):
             self.chat_view.hide_thinking_indicator()
             sublime.status_message("ArsanAI: Error generating response")
             self.chat_view.write_message("error", error)
@@ -189,7 +244,8 @@ class ArsanAIPlugin:
             messages,
             on_token,
             on_complete,
-            on_error
+            on_error,
+            tools=self.agent_tools.get_tool_schemas() if self.agent_tools else None
         )
 
     def abort_generation(self) -> None:

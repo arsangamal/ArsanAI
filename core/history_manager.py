@@ -85,17 +85,23 @@ class HistoryManager:
         self,
         session_id: str,
         role: str,
-        content: str,
+        content: Optional[str],
         token_count: int = 0,
+        tool_calls: Optional[List[Dict[str, Any]]] = None,
+        tool_call_id: Optional[str] = None,
+        name: Optional[str] = None,
     ) -> None:
         """
         Add a message to a session.
         
         Args:
             session_id: Session ID
-            role: Message role ('user' or 'assistant')
+            role: Message role ('user', 'assistant', or 'tool')
             content: Message content
             token_count: Number of tokens in this message
+            tool_calls: Optional list of tool calls for assistant message
+            tool_call_id: Optional ID of the tool call this response is for
+            name: Optional name of the tool this response is for
         """
         with self.lock:
             session_file = os.path.join(self.sessions_dir, '{}.json'.format(session_id))
@@ -106,11 +112,20 @@ class HistoryManager:
             with open(session_file, 'r') as f:
                 session = json.load(f)
             
-            session['messages'].append({
+            msg = {
                 'role': role,
-                'content': content,
                 'timestamp': datetime.now().isoformat(),
-            })
+            }
+            if content is not None:
+                msg['content'] = content
+            if tool_calls is not None:
+                msg['tool_calls'] = tool_calls
+            if tool_call_id is not None:
+                msg['tool_call_id'] = tool_call_id
+            if name is not None:
+                msg['name'] = name
+                
+            session['messages'].append(msg)
             session['token_count'] += token_count
             
             with open(session_file, 'w') as f:
