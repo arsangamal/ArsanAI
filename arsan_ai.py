@@ -266,7 +266,7 @@ def plugin_unloaded() -> None:
 
 # Window commands
 
-class ArsanaiOpenChatHubCommand(sublime_plugin.WindowCommand):
+class ArsanAiOpenChatHubCommand(sublime_plugin.WindowCommand):
     """Open the ArsanAI chat hub."""
 
     def run(self) -> None:
@@ -276,7 +276,7 @@ class ArsanaiOpenChatHubCommand(sublime_plugin.WindowCommand):
             _plugin_instance.open_chat_hub()
 
 
-class ArsanaiCloseChatHubCommand(sublime_plugin.WindowCommand):
+class ArsanAiCloseChatHubCommand(sublime_plugin.WindowCommand):
     """Close the ArsanAI chat hub."""
 
     def run(self) -> None:
@@ -285,7 +285,7 @@ class ArsanaiCloseChatHubCommand(sublime_plugin.WindowCommand):
             _plugin_instance.close_chat_hub()
 
 
-class ArsanaiStopGenerationCommand(sublime_plugin.WindowCommand):
+class ArsanAiStopGenerationCommand(sublime_plugin.WindowCommand):
     """Stop current AI generation."""
 
     def run(self) -> None:
@@ -295,7 +295,7 @@ class ArsanaiStopGenerationCommand(sublime_plugin.WindowCommand):
             sublime.status_message("Generation stopped")
 
 
-class ArsanaiSelectModelCommand(sublime_plugin.WindowCommand):
+class ArsanAiSelectModelCommand(sublime_plugin.WindowCommand):
     """Select active AI model."""
 
     def run(self) -> None:
@@ -323,7 +323,7 @@ class ArsanaiSelectModelCommand(sublime_plugin.WindowCommand):
         self.window.show_quick_panel(model_names, on_select)
 
 
-class ArsanaiCreateBlueprintCommand(sublime_plugin.WindowCommand):
+class ArsanAiCreateBlueprintCommand(sublime_plugin.WindowCommand):
     """Create a workspace blueprint."""
 
     def run(self) -> None:
@@ -355,7 +355,7 @@ class ArsanaiCreateBlueprintCommand(sublime_plugin.WindowCommand):
             _plugin_instance.create_blueprint(name, description)
 
 
-class ArsanaiOpenChatHistoryCommand(sublime_plugin.WindowCommand):
+class ArsanAiOpenChatHistoryCommand(sublime_plugin.WindowCommand):
     """Open chat history session."""
 
     def run(self) -> None:
@@ -391,7 +391,7 @@ class ArsanaiOpenChatHistoryCommand(sublime_plugin.WindowCommand):
 
 # Text commands
 
-class ArsanaiSendChatMessageCommand(sublime_plugin.TextCommand):
+class ArsanAiSendChatMessageCommand(sublime_plugin.TextCommand):
     """Send message from chat view."""
 
     def run(self, edit: sublime.Edit) -> None:
@@ -405,7 +405,7 @@ class ArsanaiSendChatMessageCommand(sublime_plugin.TextCommand):
             _plugin_instance.send_chat_message(message)
 
 
-class ArsanaiInsertSelectedTextCommand(sublime_plugin.TextCommand):
+class ArsanAiInsertSelectedTextCommand(sublime_plugin.TextCommand):
     """Insert selected text into chat."""
 
     def run(self, edit: sublime.Edit) -> None:
@@ -427,7 +427,7 @@ class ArsanaiInsertSelectedTextCommand(sublime_plugin.TextCommand):
             _plugin_instance.chat_view.write_message("context", selected_text)
 
 
-class ArsanaiRequestCompletionCommand(sublime_plugin.TextCommand):
+class ArsanAiRequestCompletionCommand(sublime_plugin.TextCommand):
     """Request AI completion for selected code."""
 
     def run(self, edit: sublime.Edit) -> None:
@@ -476,7 +476,7 @@ class ArsanaiRequestCompletionCommand(sublime_plugin.TextCommand):
         )
 
 
-class ArsanaiExportWorkspaceSummaryCommand(sublime_plugin.WindowCommand):
+class ArsanAiExportWorkspaceSummaryCommand(sublime_plugin.WindowCommand):
     """Export workspace summary."""
 
     def run(self) -> None:
