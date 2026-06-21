@@ -470,13 +470,29 @@ class APIClient:
         
         try:
             payload = self._build_payload(messages, max_tokens, temperature, tools)
-            
+            # Extract last user message as prompt
+            prompt_text = ""
+            for msg in reversed(messages):
+                if msg.get("role") == "user":
+                    prompt_text = msg.get("content", "")
+                    break
+                    
             cli_cmd = self.config.get('cli_command', ['arsan-cli', 'chat'])
             if isinstance(cli_cmd, str):
                 cmd_args = shlex.split(cli_cmd)
             else:
                 cmd_args = list(cli_cmd)
                 
+            # Process CLI arguments
+            cli_args = self.config.get('cli_args', [])
+            processed_args = []
+            for arg in cli_args:
+                if arg == "{prompt}":
+                    processed_args.append(prompt_text)
+                else:
+                    processed_args.append(arg)
+            cmd_args.extend(processed_args)
+            
             env = os.environ.copy()
             user_env = self.config.get('env', {})
             if isinstance(user_env, dict):
