@@ -228,7 +228,7 @@ class APIClient:
         
         if self.config['api_provider'] == 'openai':
             if api_key:
-                # Note: api_key comes from user settings, not hardcoded
+                # Using actual api_key from user config, not hardcoded
                 headers["Authorization"] = f"******"
         elif self.config['api_provider'] == 'anthropic':
             if api_key:

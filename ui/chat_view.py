@@ -27,6 +27,7 @@ class ChatView:
         self.view: Optional[sublime.View] = None
         self.lock = threading.Lock()
         self.current_session_id = ""
+        self.assistant_header_written = False
 
     def open_chat_hub(self, session_id: str = "") -> bool:
         """
@@ -109,8 +110,12 @@ class ChatView:
         # Format message
         if role == "user":
             formatted = f"\n**You:**\n{content}\n"
+            # Reset flag for next assistant response
+            self.assistant_header_written = False
         else:
             formatted = f"\n**Assistant:**\n{content}\n"
+            # Mark that we've written the header
+            self.assistant_header_written = True
         
         # Append to view
         self.view.run_command('append', {'characters': formatted})
@@ -139,9 +144,9 @@ class ChatView:
             return
         
         # On first token of response, write header
-        point = self.view.size()
-        if point == 0 or (point > 0 and self.view.substr(point - 1) == '\n'):
+        if not self.assistant_header_written:
             self.view.run_command('append', {'characters': "\n**Assistant:**\n"})
+            self.assistant_header_written = True
         
         # Append token
         self.view.run_command('append', {'characters': token})
@@ -176,6 +181,7 @@ Welcome to your AI assistant. Type your message below and press Ctrl+Enter (Cmd+
         
         self.view.run_command('select_all')
         self.view.run_command('delete')
+        self.assistant_header_written = False
         self._write_header()
 
     def get_user_input(self) -> str:
