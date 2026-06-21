@@ -449,7 +449,17 @@ class ArsanAiInsertSelectedTextCommand(sublime_plugin.TextCommand):
                 selected_text += active_view.substr(region) + "\n"
         
         if selected_text:
-            _plugin_instance.chat_view.write_message("context", selected_text)
+            # Detect language syntax
+            syntax_path = active_view.settings().get('syntax', '')
+            language = ""
+            if syntax_path:
+                basename = os.path.basename(syntax_path)
+                name, _ = os.path.splitext(basename)
+                language = name.lower()
+            
+            # Format as markdown code block
+            formatted_code = "\n```{}\n{}\n```\n".format(language, selected_text.strip())
+            _plugin_instance.chat_view.insert_text(formatted_code)
 
 
 class ArsanAiRequestCompletionCommand(sublime_plugin.TextCommand):

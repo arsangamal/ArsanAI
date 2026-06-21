@@ -369,3 +369,32 @@ Welcome to your AI assistant. Type your message below and press Ctrl+Enter (Cmd+
         
         self.phantom_set.update([])
         self.phantom_set = None
+
+    def insert_text(self, text: str) -> None:
+        """Insert text at the current cursor position of the chat view."""
+        with self.lock:
+            if not self.view:
+                return
+            
+            sublime.set_timeout(
+                lambda: self._insert_text_sync(text),
+                0
+            )
+
+    def _insert_text_sync(self, text: str) -> None:
+        if not self.view:
+            return
+        
+        # Focus the chat view window and view
+        window = self.view.window()
+        if window:
+            window.focus_view(self.view)
+            
+        # Insert text at the current cursor/selections
+        # If no selections, move to eof and insert
+        sel = self.view.sel()
+        if len(sel) > 0 and not sel[0].empty():
+            self.view.run_command('insert', {'characters': text})
+        else:
+            self.view.run_command('move_to', {'to': 'eof'})
+            self.view.run_command('insert', {'characters': text})
