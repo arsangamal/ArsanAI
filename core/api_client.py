@@ -136,7 +136,6 @@ class APIClient:
         """Worker thread for streaming API calls."""
         try:
             payload = self._build_payload(messages, max_tokens, temperature, tools)
-            
             headers = self._build_headers()
             
             req_body = json.dumps(payload).encode('utf-8')
@@ -270,10 +269,10 @@ class APIClient:
             delta = choices[0].get('delta', {})
             delta_tool_calls = delta.get('tool_calls', [])
             
-            for tc in delta_tool_calls:
+            for i, tc in enumerate(delta_tool_calls):
                 idx = tc.get('index')
                 if idx is None:
-                    continue
+                    idx = i
                 
                 if idx not in tool_calls:
                     tool_calls[idx] = {
