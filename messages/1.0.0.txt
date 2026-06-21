@@ -1,0 +1,67 @@
+================================================================================
+                         ArsanAI v1.0.0
+================================================================================
+
+🎉 Welcome to ArsanAI 1.0.0!
+
+This is the first production-ready release of ArsanAI, featuring:
+
+NEW FEATURES
+============
+
+✓ Multi-engine AI support
+  - OpenAI (GPT-4, GPT-3.5-turbo, etc.)
+  - Anthropic (Claude series)
+  - Custom endpoints (Ollama, vLLM, etc.)
+
+✓ Streaming responses
+  - Real-time token generation
+  - Instant abort with Ctrl+C
+  - Smooth UI updates
+
+✓ Chat hub interface
+  - Split-screen dedicated chat panel
+  - Persistent conversation history
+  - Session recovery
+
+✓ Code completions
+  - Context-aware suggestions
+  - Multi-line completions
+  - Inline previews
+
+✓ Workspace blueprinting
+  - Refactoring planning
+  - Task checklists
+  - Project structure analysis
+
+✓ Model Context Protocol (MCP)
+  - Sandboxed tool execution
+  - System integration
+  - Custom tool support
+
+GETTING STARTED
+===============
+
+1. Open Preferences → Package Settings → ArsanAI → Settings
+2. Configure your API provider and API key
+3. Open Command Palette and select "ArsanAI: Open Chat Hub"
+4. Start chatting!
+
+KEYBINDINGS
+===========
+
+• Ctrl+Shift+A       - Open Chat Hub (customizable)
+• Ctrl+Enter (Cmd+Enter on macOS)  - Send chat message
+• Ctrl+C             - Stop generation
+
+DOCUMENTATION
+==============
+
+Full documentation available at:
+https://github.com/arsangamal/ArsanAI
+
+Thank you for using ArsanAI! We hope it transforms your development workflow.
+
+Happy coding! 🚀
+
+================================================================================

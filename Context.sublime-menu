@@ -1,0 +1,41 @@
+[
+    {
+        "caption": "-",
+        "id": "arsan_ai_divider"
+    },
+    {
+        "caption": "ArsanAI",
+        "id": "arsan_ai_context",
+        "children": [
+            {
+                "caption": "Send to Chat",
+                "command": "arsan_ai_insert_selected_text"
+            },
+            {
+                "caption": "-"
+            },
+            {
+                "caption": "Request Completion",
+                "command": "arsan_ai_request_completion"
+            },
+            {
+                "caption": "-"
+            },
+            {
+                "caption": "Open Chat Hub",
+                "command": "arsan_ai_open_chat_hub"
+            },
+            {
+                "caption": "Open Chat History",
+                "command": "arsan_ai_open_chat_history"
+            },
+            {
+                "caption": "-"
+            },
+            {
+                "caption": "Create Blueprint",
+                "command": "arsan_ai_create_blueprint"
+            }
+        ]
+    }
+]

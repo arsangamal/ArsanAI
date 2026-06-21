@@ -1,0 +1,60 @@
+================================================================================
+                           Welcome to ArsanAI!
+================================================================================
+
+Thank you for installing ArsanAI - the production-grade AI assistant for 
+Sublime Text 4!
+
+GETTING STARTED
+===============
+
+1. Configure your API credentials:
+   → Preferences → Package Settings → ArsanAI → Settings
+   
+2. Add your API key:
+   - OpenAI: https://platform.openai.com/api-keys
+   - Anthropic: https://console.anthropic.com
+   - Or use a custom endpoint
+
+3. Open the Command Palette: Ctrl+Shift+P (or Cmd+Shift+P on macOS)
+
+4. Search for "ArsanAI: Open Chat Hub" to get started!
+
+QUICK COMMANDS
+==============
+
+• ArsanAI: Open Chat Hub          - Launch the chat interface
+• ArsanAI: Select Model           - Switch between AI models
+• ArsanAI: Request Completion     - Get AI code suggestions
+• ArsanAI: Create Blueprint       - Plan refactoring tasks
+• ArsanAI: Open Chat History      - Resume past conversations
+
+FEATURES
+========
+
+✓ Multi-engine AI support (OpenAI, Anthropic, custom endpoints)
+✓ Real-time streaming responses with instant abort
+✓ Persistent chat history and conversation recovery
+✓ Model Context Protocol (MCP) for tool execution
+✓ Context-aware code completions
+✓ Workspace blueprinting for refactoring
+✓ Fully non-blocking UI using threading
+
+DOCUMENTATION
+==============
+
+For detailed documentation, visit:
+https://github.com/arsangamal/ArsanAI
+
+NEED HELP?
+==========
+
+If you encounter any issues:
+
+1. Check the Sublime Console: View → Show Console
+2. Verify your API key and endpoint in settings
+3. Ensure you have an active workspace/folder open
+
+Enjoy your AI-powered development experience! 🚀
+
+================================================================================
