@@ -1,0 +1,52 @@
+[
+    {
+        "caption": "ArsanAI: Open Chat Hub",
+        "command": "arsan_ai_open_chat_hub",
+        "description": "Open the ArsanAI chat interface in split-screen mode"
+    },
+    {
+        "caption": "ArsanAI: Close Chat Hub",
+        "command": "arsan_ai_close_chat_hub",
+        "description": "Close the ArsanAI chat interface"
+    },
+    {
+        "caption": "ArsanAI: Stop Generation",
+        "command": "arsan_ai_stop_generation",
+        "description": "Stop the current AI generation"
+    },
+    {
+        "caption": "ArsanAI: Select Model",
+        "command": "arsan_ai_select_model",
+        "description": "Choose which AI model to use"
+    },
+    {
+        "caption": "ArsanAI: Create Blueprint",
+        "command": "arsan_ai_create_blueprint",
+        "description": "Create a workspace blueprint for planning and refactoring"
+    },
+    {
+        "caption": "ArsanAI: Open Chat History",
+        "command": "arsan_ai_open_chat_history",
+        "description": "Load and continue a previous conversation"
+    },
+    {
+        "caption": "ArsanAI: Send Chat Message",
+        "command": "arsan_ai_send_chat_message",
+        "description": "Send the current message in chat view"
+    },
+    {
+        "caption": "ArsanAI: Insert Selected Text",
+        "command": "arsan_ai_insert_selected_text",
+        "description": "Insert selected code into the chat"
+    },
+    {
+        "caption": "ArsanAI: Request Completion",
+        "command": "arsan_ai_request_completion",
+        "description": "Request AI code completion for selected text"
+    },
+    {
+        "caption": "ArsanAI: Export Workspace Summary",
+        "command": "arsan_ai_export_workspace_summary",
+        "description": "Export current workspace structure and blueprint summary"
+    }
+]

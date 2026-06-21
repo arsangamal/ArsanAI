@@ -1,0 +1,120 @@
+{
+    // ============================================================================
+    // ArsanAI Settings Configuration
+    // ============================================================================
+
+    // API Configuration
+    // Supports OpenAI, Anthropic, and custom endpoints
+    "api": {
+        "api_provider": "openai",
+        "api_base": "https://api.openai.com/v1/chat/completions",
+        "api_key": "your-api-key-here",
+        "model": "gpt-4-turbo-preview"
+    },
+
+    // Alternative API configurations (uncomment to use)
+    // Anthropic configuration:
+    // "api": {
+    //     "api_provider": "anthropic",
+    //     "api_base": "https://api.anthropic.com/v1/messages",
+    //     "api_key": "your-anthropic-key",
+    //     "model": "claude-3-opus-20240229"
+    // },
+
+    // Custom endpoint configuration:
+    // "api": {
+    //     "api_provider": "custom",
+    //     "api_base": "http://localhost:8000/v1/chat/completions",
+    //     "api_key": "optional-key",
+    //     "model": "local-model"
+    // },
+
+    // Token and rate limiting
+    "token_limit": 8000,
+    "max_completion_tokens": 2048,
+    "temperature": 0.7,
+    "top_p": 0.9,
+
+    // Chat UI Configuration
+    "chat": {
+        "auto_open_on_startup": false,
+        "remember_conversation_history": true,
+        "history_limit": 50,
+        "show_token_count": true
+    },
+
+    // Autocomplete Configuration
+    "autocomplete": {
+        "enabled": true,
+        "min_prefix_length": 2,
+        "context_lines_before": 50,
+        "context_lines_after": 10,
+        "max_suggestions": 5
+    },
+
+    // Workspace Configuration
+    "workspace": {
+        "blueprint_style": "markdown",
+        "auto_create_staging_dir": true,
+        "staging_dir_name": ".arsan"
+    },
+
+    // Model Context Protocol (MCP) Configuration
+    // Define available MCP servers for tool integration
+    "mcp_servers": [
+        // Example: Local filesystem operations server
+        {
+            "name": "filesystem",
+            "command": "python",
+            "args": ["-m", "mcp.servers.filesystem"],
+            "env": {}
+        },
+        // Example: Git operations server
+        {
+            "name": "git",
+            "command": "python",
+            "args": ["-m", "mcp.servers.git"],
+            "env": {}
+        },
+        // Example: Shell operations server (use with caution)
+        // {
+        //     "name": "shell",
+        //     "command": "python",
+        //     "args": ["-m", "mcp.servers.shell"],
+        //     "env": {
+        //         "SHELL_COMMAND_TIMEOUT": "30"
+        //     }
+        // }
+    ],
+
+    // Keybindings Configuration
+    "keybindings": {
+        "send_chat_message": "ctrl+enter",
+        "abort_generation": "ctrl+c",
+        "open_chat_hub": "ctrl+shift+a"
+    },
+
+    // System Prompt Templates
+    "system_prompts": {
+        "default": "You are an expert programmer assistant. Provide clear, concise, and accurate responses.",
+        "code_review": "You are a senior code reviewer. Focus on identifying bugs, performance issues, and design patterns.",
+        "documentation": "You are a technical writer. Create clear, well-structured documentation.",
+        "refactoring": "You are a software architect. Suggest refactoring improvements and design patterns."
+    },
+
+    // UI Configuration
+    "ui": {
+        "theme": "auto",
+        "font_size": "auto",
+        "code_highlight": true,
+        "show_line_numbers": true
+    },
+
+    // Debug Configuration
+    "debug": {
+        "enabled": false,
+        "log_level": "info",
+        "log_to_console": true,
+        "profile_performance": false
+    }
+}
