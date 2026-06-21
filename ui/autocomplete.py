@@ -1,6 +1,10 @@
 """
 Autocomplete module for ArsanAI.
 Provides context-aware AI-powered completions and inline previews.
+
+Note: Autocomplete is currently a placeholder feature that returns empty results.
+To enable full autocomplete with AI suggestions, the _fetch_completions method
+would need to be integrated with the API client to make real-time API calls.
 """
 
 import sublime

@@ -18,9 +18,15 @@ A production-grade, deeply-integrated AI assistant for Sublime Text 4 featuring 
 
 1. Clone this repository into your Sublime Text Packages directory:
    ```bash
-   cd ~/.config/sublime-text/Packages  # On Linux/macOS
-   # or
-   cd %APPDATA%\Sublime Text\Packages  # On Windows
+   # On Linux
+   cd ~/.config/sublime-text/Packages
+   
+   # On macOS
+   cd ~/Library/Application\ Support/Sublime\ Text/Packages
+   
+   # On Windows
+   cd %APPDATA%\Sublime Text\Packages
+   
    git clone https://github.com/arsangamal/ArsanAI.git
    ```
 

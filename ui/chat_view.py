@@ -133,20 +133,24 @@ class ChatView:
             if not self.view:
                 return
             
+            # Check and set the header flag inside the lock
+            should_write_header = not self.assistant_header_written
+            if should_write_header:
+                self.assistant_header_written = True
+            
             sublime.set_timeout(
-                lambda: self._stream_token_sync(token),
+                lambda: self._stream_token_sync(token, should_write_header),
                 0
             )
 
-    def _stream_token_sync(self, token: str) -> None:
+    def _stream_token_sync(self, token: str, write_header: bool = False) -> None:
         """Synchronous token stream (must be called from UI thread)."""
         if not self.view:
             return
         
         # On first token of response, write header
-        if not self.assistant_header_written:
+        if write_header:
             self.view.run_command('append', {'characters': "\n**Assistant:**\n"})
-            self.assistant_header_written = True
         
         # Append token
         self.view.run_command('append', {'characters': token})
