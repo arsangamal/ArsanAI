@@ -172,6 +172,7 @@ Welcome to your AI assistant. Type your message below and press Ctrl+Enter (Cmd+
 
 ---
 
+**You:**
 """
         self.view.run_command('append', {'characters': header})
 
@@ -199,7 +200,7 @@ Welcome to your AI assistant. Type your message below and press Ctrl+Enter (Cmd+
     def get_user_input(self) -> str:
         """
         Extract unprocessed user input from chat view.
-        Returns text after the last assistant message.
+        Returns text after the last "You:" message marker.
         
         Returns:
             User input text
@@ -210,21 +211,44 @@ Welcome to your AI assistant. Type your message below and press Ctrl+Enter (Cmd+
             
             content = self.view.substr(sublime.Region(0, self.view.size()))
             
-            # Find last assistant message marker
-            last_assistant = content.rfind("\n**Assistant:**\n")
-            if last_assistant == -1:
-                last_assistant = content.find("---")
-                if last_assistant != -1:
-                    # Skip past the separator
-                    last_assistant = last_assistant + len("---")
+            # Find last "You:" marker
+            last_you = content.rfind("\n**You:**\n")
+            if last_you == -1:
+                last_you = content.rfind("**You:**\n")
+                if last_you != -1:
+                    last_you = last_you + len("**You:**\n")
             else:
-                # Skip past the assistant message marker
-                last_assistant = last_assistant + len("\n**Assistant:**\n")
+                last_you = last_you + len("\n**You:**\n")
             
-            if last_assistant != -1 and last_assistant < len(content):
-                return content[last_assistant:].strip()
+            # Fallback to after separator if no marker found
+            if last_you == -1:
+                last_you = content.rfind("---")
+                if last_you != -1:
+                    last_you = last_you + len("---")
+            
+            if last_you != -1 and last_you < len(content):
+                return content[last_you:].strip()
             
             return content.strip()
+
+    def prepare_for_user_input(self) -> None:
+        """Prepare the chat view for the next user input by appending the header."""
+        with self.lock:
+            if not self.view:
+                return
+            
+            sublime.set_timeout(
+                lambda: self._prepare_for_user_input_sync(),
+                0
+            )
+
+    def _prepare_for_user_input_sync(self) -> None:
+        """Synchronous prepare (must be called from UI thread)."""
+        if not self.view:
+            return
+        
+        self.view.run_command('append', {'characters': "\n\n**You:**\n"})
+        self.view.run_command('move_to', {'to': 'eof'})
 
     def format_code_block(self, code: str, language: str = "") -> str:
         """

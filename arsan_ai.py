@@ -127,20 +127,22 @@ class ArsanAIPlugin:
         if not self.api_client or not self.chat_view:
             return
         
-        # Add to chat view
-        self.chat_view.write_message("user", message)
+        # Store in history (create new session if none exists)
+        if not self.chat_view.current_session_id:
+            title = message[:30] + ("..." if len(message) > 30 else "")
+            self.chat_view.current_session_id = self.history_manager.create_session(title=title)
+            
+        self.history_manager.add_message(
+            self.chat_view.current_session_id,
+            "user",
+            message
+        )
         
-        # Store in history
-        if self.chat_view.current_session_id:
-            self.history_manager.add_message(
-                self.chat_view.current_session_id,
-                "user",
-                message
-            )
-        
-        # Get chat context
+        # Get chat context from history manager
+        history_messages = self.history_manager.get_session_messages(self.chat_view.current_session_id)
         messages = [
-            {"role": "user", "content": message}
+            {"role": msg["role"], "content": msg["content"]}
+            for msg in history_messages
         ]
         
         # Stream response
@@ -160,9 +162,11 @@ class ArsanAIPlugin:
                     text,
                     token_count
                 )
+            self.chat_view.prepare_for_user_input()
         
         def on_error(error: str) -> None:
             self.chat_view.write_message("error", error)
+            self.chat_view.prepare_for_user_input()
         
         self.api_client.stream_chat(
             messages,
@@ -385,6 +389,7 @@ class ArsanAiOpenChatHistoryCommand(sublime_plugin.WindowCommand):
                             msg['role'],
                             msg['content']
                         )
+                    _plugin_instance.chat_view.prepare_for_user_input()
         
         self.window.show_quick_panel(session_names, on_select)
 
