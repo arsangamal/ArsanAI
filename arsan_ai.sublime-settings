@@ -28,6 +28,14 @@
     //     "api_key": "optional-key",
     //     "model": "local-model"
     // },
+    
+    // Local CLI provider configuration:
+    // "api": {
+    //     "api_provider": "cli",
+    //     "cli_command": ["arsan-cli", "chat"],
+    //     "model": "gemini" // Or claude, copilot, openai, etc.
+    // },
+
 
     // Token and rate limiting
     "token_limit": 8000,

@@ -85,6 +85,7 @@ class APIClient:
         """
         self.config = config
         self.abort_signal = False
+        self.current_process = None
         self.current_thread = None  # type: Optional[threading.Thread]
         self.lock = threading.Lock()
 
@@ -134,6 +135,10 @@ class APIClient:
         tools: Optional[List[Dict[str, Any]]] = None,
     ) -> None:
         """Worker thread for streaming API calls."""
+        if self.config.get('api_provider') == 'cli':
+            self._stream_worker_cli(messages, on_token, on_complete, on_error, max_tokens, temperature, tools)
+            return
+            
         try:
             payload = self._build_payload(messages, max_tokens, temperature, tools)
             headers = self._build_headers()
@@ -361,6 +366,11 @@ class APIClient:
         """Signal the current streaming operation to abort."""
         with self.lock:
             self.abort_signal = True
+            if self.current_process:
+                try:
+                    self.current_process.terminate()
+                except Exception:
+                    pass
 
     def discover_models(self) -> List[Dict[str, str]]:
         """
@@ -393,3 +403,135 @@ class APIClient:
             pass
         
         return models
+
+    def _stream_worker_cli(
+        self,
+        messages: List[Dict[str, Any]],
+        on_token: Callable[[str], None],
+        on_complete: Callable[[str, int, Optional[List[Dict[str, Any]]]], None],
+        on_error: Callable[[str], None],
+        max_tokens: int,
+        temperature: float,
+        tools: Optional[List[Dict[str, Any]]] = None,
+    ) -> None:
+        """Worker thread for streaming via a local CLI process."""
+        import subprocess
+        import shlex
+        
+        try:
+            payload = self._build_payload(messages, max_tokens, temperature, tools)
+            
+            cli_cmd = self.config.get('cli_command', ['arsan-cli', 'chat'])
+            if isinstance(cli_cmd, str):
+                cmd_args = shlex.split(cli_cmd)
+            else:
+                cmd_args = list(cli_cmd)
+                
+            process = subprocess.Popen(
+                cmd_args,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                universal_newlines=True,
+                bufsize=1
+            )
+            
+            with self.lock:
+                self.current_process = process
+                
+            # Write payload to stdin and close it
+            try:
+                payload_str = json.dumps(payload)
+                process.stdin.write(payload_str + "\n")
+                process.stdin.close()
+            except Exception as e:
+                on_error("Failed to write to CLI stdin: {}".format(str(e)))
+                return
+                
+            full_response = ""
+            token_count = 0
+            streamed_tool_calls = {}
+            cli_format = self.config.get('cli_format', 'text')
+            
+            if cli_format == 'json':
+                # Read line-by-line for JSON-separated stream chunks
+                for line in iter(process.stdout.readline, ""):
+                    if self.abort_signal:
+                        break
+                    line_str = line.strip()
+                    if not line_str:
+                        continue
+                    try:
+                        chunk = json.loads(line_str)
+                        if "choices" in chunk:
+                            token = self._extract_openai_token(chunk)
+                            if token:
+                                full_response += token
+                                token_count += 1
+                                on_token(token)
+                            self._accumulate_openai_tool_calls(chunk, streamed_tool_calls)
+                        else:
+                            token = chunk.get("token") or chunk.get("content") or chunk.get("text")
+                            if token:
+                                full_response += token
+                                token_count += 1
+                                on_token(token)
+                            self._accumulate_cli_tool_calls(chunk, streamed_tool_calls)
+                    except Exception:
+                        pass
+            else:
+                # Read chunk-by-chunk for raw text stream
+                while not self.abort_signal:
+                    chunk = process.stdout.read(16)
+                    if not chunk:
+                        break
+                    full_response += chunk
+                    token_count += len(chunk) // 4 + 1
+                    on_token(chunk)
+                    
+            # Wait for process exit and read error output
+            stderr_output = process.stderr.read()
+            exit_code = process.wait()
+            
+            with self.lock:
+                self.current_process = None
+                
+            if exit_code != 0 and not self.abort_signal:
+                on_error("CLI process exited with code {}. Stderr: {}".format(exit_code, stderr_output))
+                return
+                
+            if not self.abort_signal:
+                tool_calls_list = list(streamed_tool_calls.values()) if streamed_tool_calls else None
+                on_complete(full_response, token_count, tool_calls_list)
+                
+        except Exception as e:
+            on_error("CLI integration error: {}\n{}".format(str(e), traceback.format_exc()))
+            with self.lock:
+                self.current_process = None
+
+    def _accumulate_cli_tool_calls(self, chunk: Dict[str, Any], tool_calls: Dict[str, Dict[str, Any]]) -> None:
+        """Accumulate custom CLI format tool calls."""
+        try:
+            tc_list = chunk.get('tool_calls', [])
+            if not isinstance(tc_list, list):
+                return
+            for tc in tc_list:
+                name = tc.get('name') or tc.get('function', {}).get('name')
+                if not name:
+                    continue
+                tc_id = tc.get('id') or name
+                if tc_id not in tool_calls:
+                    tool_calls[tc_id] = {
+                        "id": tc.get('id') or "call_" + name,
+                        "type": "function",
+                        "function": {
+                            "name": name,
+                            "arguments": ""
+                        }
+                    }
+                args = tc.get('arguments') or tc.get('function', {}).get('arguments', '')
+                if isinstance(args, dict):
+                    args = json.dumps(args)
+                tool_calls[tc_id]['function']['arguments'] += args
+        except Exception:
+            pass
