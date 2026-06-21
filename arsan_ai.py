@@ -240,12 +240,20 @@ class ArsanAIPlugin:
             self.chat_view.write_message("error", error)
             self.chat_view.prepare_for_user_input()
         
+        # Get active project folder
+        cwd = None
+        if self.window:
+            folders = self.window.folders()
+            if folders:
+                cwd = folders[0]
+
         self.api_client.stream_chat(
             messages,
             on_token,
             on_complete,
             on_error,
-            tools=self.agent_tools.get_tool_schemas() if self.agent_tools else None
+            tools=self.agent_tools.get_tool_schemas() if self.agent_tools else None,
+            cwd=cwd
         )
 
     def abort_generation(self) -> None:

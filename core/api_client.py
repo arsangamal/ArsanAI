@@ -98,6 +98,7 @@ class APIClient:
         max_tokens: int = 2048,
         temperature: float = 0.7,
         tools: Optional[List[Dict[str, Any]]] = None,
+        cwd: Optional[str] = None,
     ) -> None:
         """
         Stream a chat completion asynchronously.
@@ -110,6 +111,7 @@ class APIClient:
             max_tokens: Maximum tokens to generate
             temperature: Sampling temperature
             tools: Optional list of tools schemas
+            cwd: Optional current working directory for local CLI execution
         """
         with self.lock:
             if self.current_thread and self.current_thread.is_alive():
@@ -118,7 +120,7 @@ class APIClient:
             self.abort_signal = False
             thread = threading.Thread(
                 target=self._stream_worker,
-                args=(messages, on_token, on_complete, on_error, max_tokens, temperature, tools),
+                args=(messages, on_token, on_complete, on_error, max_tokens, temperature, tools, cwd),
                 daemon=True,
             )
             self.current_thread = thread
@@ -133,10 +135,11 @@ class APIClient:
         max_tokens: int,
         temperature: float,
         tools: Optional[List[Dict[str, Any]]] = None,
+        cwd: Optional[str] = None,
     ) -> None:
         """Worker thread for streaming API calls."""
         if self.config.get('api_provider') == 'cli':
-            self._stream_worker_cli(messages, on_token, on_complete, on_error, max_tokens, temperature, tools)
+            self._stream_worker_cli(messages, on_token, on_complete, on_error, max_tokens, temperature, tools, cwd)
             return
             
         try:
@@ -462,13 +465,18 @@ class APIClient:
         max_tokens: int,
         temperature: float,
         tools: Optional[List[Dict[str, Any]]] = None,
+        cwd: Optional[str] = None,
     ) -> None:
         """Worker thread for streaming via a local CLI process."""
         import subprocess
         import shlex
         import os
         
+        log_file = "/Users/arsangamal/Code/ArsanAI/debug_cli.log"
         try:
+            with open(log_file, "a", encoding="utf-8") as lf:
+                lf.write("\n=== CLI RUN ===\n")
+                
             payload = self._build_payload(messages, max_tokens, temperature, tools)
             # Extract last user message as prompt
             prompt_text = ""
@@ -499,6 +507,10 @@ class APIClient:
                 for k, v in user_env.items():
                     env[str(k)] = str(v)
                     
+            with open(log_file, "a", encoding="utf-8") as lf:
+                lf.write("Command args: {}\n".format(json.dumps(cmd_args)))
+                lf.write("Custom Env: {}\n".format(json.dumps(user_env)))
+                
             process = subprocess.Popen(
                 cmd_args,
                 stdin=subprocess.PIPE,
@@ -506,9 +518,13 @@ class APIClient:
                 stderr=subprocess.PIPE,
                 universal_newlines=True,
                 bufsize=1,
-                env=env
+                env=env,
+                cwd=cwd
             )
             
+            with open(log_file, "a", encoding="utf-8") as lf:
+                lf.write("Process spawned. PID: {}\n".format(process.pid))
+                
             with self.lock:
                 self.current_process = process
                 
@@ -517,7 +533,11 @@ class APIClient:
                 payload_str = json.dumps(payload)
                 process.stdin.write(payload_str + "\n")
                 process.stdin.close()
+                with open(log_file, "a", encoding="utf-8") as lf:
+                    lf.write("Payload written to stdin.\n")
             except Exception as e:
+                with open(log_file, "a", encoding="utf-8") as lf:
+                    lf.write("Failed to write to stdin: {}\n".format(str(e)))
                 on_error("Failed to write to CLI stdin: {}".format(str(e)))
                 return
                 
@@ -529,6 +549,8 @@ class APIClient:
             if cli_format == 'json':
                 # Read line-by-line for JSON-separated stream chunks
                 for line in iter(process.stdout.readline, ""):
+                    with open(log_file, "a", encoding="utf-8") as lf:
+                        lf.write("JSON Line: {}".format(line))
                     if self.abort_signal:
                         break
                     line_str = line.strip()
@@ -550,14 +572,17 @@ class APIClient:
                                 token_count += 1
                                 on_token(token)
                             self._accumulate_cli_tool_calls(chunk, streamed_tool_calls)
-                    except Exception:
-                        pass
+                    except Exception as ex:
+                        with open(log_file, "a", encoding="utf-8") as lf:
+                            lf.write("JSON Parse Exception: {}\n".format(str(ex)))
             else:
                 # Read chunk-by-chunk for raw text stream
                 while not self.abort_signal:
                     chunk = process.stdout.read(16)
                     if not chunk:
                         break
+                    with open(log_file, "a", encoding="utf-8") as lf:
+                        lf.write("Text Chunk: {}\n".format(chunk))
                     full_response += chunk
                     token_count += len(chunk) // 4 + 1
                     on_token(chunk)
@@ -566,6 +591,10 @@ class APIClient:
             stderr_output = process.stderr.read()
             exit_code = process.wait()
             
+            with open(log_file, "a", encoding="utf-8") as lf:
+                lf.write("Process exit code: {}\n".format(exit_code))
+                lf.write("Stderr: {}\n".format(stderr_output))
+                
             with self.lock:
                 self.current_process = None
                 
@@ -578,7 +607,10 @@ class APIClient:
                 on_complete(full_response, token_count, tool_calls_list)
                 
         except Exception as e:
-            on_error("CLI integration error: {}\n{}".format(str(e), traceback.format_exc()))
+            error_msg = "CLI integration error: {}\n{}".format(str(e), traceback.format_exc())
+            with open(log_file, "a", encoding="utf-8") as lf:
+                lf.write("Outer Exception: {}\n".format(error_msg))
+            on_error(error_msg)
             with self.lock:
                 self.current_process = None
 
