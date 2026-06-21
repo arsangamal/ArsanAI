@@ -7,18 +7,28 @@ import sublime
 import sublime_plugin
 import os
 import sys
+import traceback
 
-# Add current directory to path for relative imports
-plugin_dir = os.path.dirname(os.path.abspath(__file__))
-if plugin_dir not in sys.path:
-    sys.path.insert(0, plugin_dir)
+# Plugin directory and module prefix
+_plugin_dir = os.path.dirname(os.path.abspath(__file__))
+_plugin_prefix = 'ArsanAI.'
 
-from core.api_client import APIClient
-from core.history_manager import HistoryManager
-from core.mcp_coordinator import MCPCoordinator
-from core.workspace_manager import WorkspaceManager
-from ui.chat_view import ChatView
-from ui.autocomplete import ArsanAiAutocomplete
+# Add current directory to path for relative imports (only once)
+if _plugin_dir not in sys.path:
+    sys.path.insert(0, _plugin_dir)
+
+# Import core modules with error handling for reload robustness
+try:
+    from core.api_client import APIClient
+    from core.history_manager import HistoryManager
+    from core.mcp_coordinator import MCPCoordinator
+    from core.workspace_manager import WorkspaceManager
+    from ui.chat_view import ChatView
+    from ui.autocomplete import ArsanAiAutocomplete
+except ImportError as e:
+    print(f"ArsanAI: Import error during plugin load: {e}")
+    traceback.print_exc()
+    raise
 
 
 # Global plugin instance
@@ -66,15 +76,24 @@ class ArsanAIPlugin:
             # Initialize API client
             api_config = self.settings.get('api', {})
             if api_config:
-                self.api_client = APIClient(api_config)
+                try:
+                    self.api_client = APIClient(api_config)
+                except Exception as e:
+                    print(f"ArsanAI: Error initializing API client: {e}")
+                    self.api_client = None
             
             # Initialize MCP coordinator
             mcp_config = self.settings.get('mcp_servers', [])
             if mcp_config:
-                self.mcp_coordinator = MCPCoordinator(mcp_config)
+                try:
+                    self.mcp_coordinator = MCPCoordinator(mcp_config)
+                except Exception as e:
+                    print(f"ArsanAI: Error initializing MCP coordinator: {e}")
+                    self.mcp_coordinator = None
         
         except Exception as e:
             print(f"ArsanAI: Error initializing subsystems: {e}")
+            traceback.print_exc()
 
     def set_window(self, window: sublime.Window) -> None:
         """Set the active window."""
@@ -186,8 +205,18 @@ def plugin_loaded() -> None:
     """Sublime plugin lifecycle: plugin loaded."""
     global _plugin_instance
     
-    _plugin_instance = ArsanAIPlugin()
-    print("ArsanAI plugin loaded")
+    # Guard against double initialization on reload
+    if _plugin_instance is not None:
+        print("ArsanAI plugin already initialized, skipping re-initialization")
+        return
+    
+    try:
+        _plugin_instance = ArsanAIPlugin()
+        print("ArsanAI plugin loaded successfully")
+    except Exception as e:
+        print(f"ArsanAI: Failed to load plugin: {e}")
+        traceback.print_exc()
+        _plugin_instance = None
 
 
 def plugin_unloaded() -> None:
@@ -196,13 +225,27 @@ def plugin_unloaded() -> None:
     
     if _plugin_instance:
         # Clean up resources
-        if _plugin_instance.mcp_coordinator:
-            _plugin_instance.mcp_coordinator.stop_all()
-        
-        if _plugin_instance.chat_view:
-            _plugin_instance.chat_view.close_chat_hub()
+        try:
+            if _plugin_instance.mcp_coordinator:
+                _plugin_instance.mcp_coordinator.stop_all()
+            
+            if _plugin_instance.chat_view:
+                _plugin_instance.chat_view.close_chat_hub()
+        except Exception as e:
+            print(f"ArsanAI: Error during cleanup: {e}")
     
     _plugin_instance = None
+    
+    # Clean up sys.modules to prevent reload issues
+    # Remove all ArsanAI-related modules
+    modules_to_remove = [key for key in sys.modules.keys() 
+                        if key.startswith(('arsan_ai', 'core', 'ui', _plugin_prefix))]
+    for module_name in modules_to_remove:
+        try:
+            del sys.modules[module_name]
+        except KeyError:
+            pass
+    
     print("ArsanAI plugin unloaded")
 
 
