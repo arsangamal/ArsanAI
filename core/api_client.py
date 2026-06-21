@@ -85,7 +85,7 @@ class APIClient:
         """
         self.config = config
         self.abort_signal = False
-        self.current_thread: Optional[threading.Thread] = None
+        self.current_thread = None  # type: Optional[threading.Thread]
         self.lock = threading.Lock()
 
     def stream_chat(

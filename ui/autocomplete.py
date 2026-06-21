@@ -28,7 +28,7 @@ class ArsanAiAutocomplete(sublime_plugin.EventListener):
 
     def __init__(self):
         """Initialize autocomplete listener."""
-        self.api_client: Optional[Any] = None
+        self.api_client = None  # type: Optional[Any]
         self.enabled = True
 
     def on_query_completions(

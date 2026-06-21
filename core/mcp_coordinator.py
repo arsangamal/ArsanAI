@@ -34,7 +34,7 @@ class MCPServer:
         """
         self.name = name
         self.config = config
-        self.process: Optional[subprocess.Popen] = None
+        self.process = None  # type: Optional[subprocess.Popen]
         self.lock = threading.Lock()
 
     def start(self) -> bool:
@@ -174,7 +174,7 @@ class MCPCoordinator:
         Args:
             servers_config: List of MCP server configurations
         """
-        self.servers: Dict[str, MCPServer] = {}
+        self.servers = {}  # type: Dict[str, MCPServer]
         self.lock = threading.Lock()
         
         for server_config in servers_config:

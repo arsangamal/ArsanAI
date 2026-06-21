@@ -31,7 +31,7 @@ class ChatView:
             window: Sublime window
         """
         self.window = window
-        self.view: Optional[sublime.View] = None
+        self.view = None  # type: Optional[sublime.View]
         self.lock = threading.Lock()
         self.current_session_id = ""
         self.assistant_header_written = False
