@@ -216,7 +216,6 @@ class ArsanaiOpenChatHubCommand(sublime_plugin.WindowCommand):
         if _plugin_instance:
             _plugin_instance.set_window(self.window)
             _plugin_instance.open_chat_hub()
-            sublime.message_dialog("Chat hub opened. Type your message and press the send keybinding to send.")
 
 
 class ArsanaiCloseChatHubCommand(sublime_plugin.WindowCommand):

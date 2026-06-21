@@ -140,7 +140,7 @@ class ChatView:
         
         # On first token of response, write header
         point = self.view.size()
-        if point == 0 or self.view.substr(point - 1) == '\n':
+        if point == 0 or (point > 0 and self.view.substr(point - 1) == '\n'):
             self.view.run_command('append', {'characters': "\n**Assistant:**\n"})
         
         # Append token
@@ -196,8 +196,14 @@ Welcome to your AI assistant. Type your message below and press Ctrl+Enter (Cmd+
             last_assistant = content.rfind("\n**Assistant:**\n")
             if last_assistant == -1:
                 last_assistant = content.find("---")
+                if last_assistant != -1:
+                    # Skip past the separator
+                    last_assistant = last_assistant + len("---")
+            else:
+                # Skip past the assistant message marker
+                last_assistant = last_assistant + len("\n**Assistant:**\n")
             
-            if last_assistant != -1:
+            if last_assistant != -1 and last_assistant < len(content):
                 return content[last_assistant:].strip()
             
             return content.strip()

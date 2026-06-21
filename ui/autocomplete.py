@@ -102,7 +102,9 @@ class ArsanAiAutocomplete(sublime_plugin.EventListener):
         lines = text.split('\n')
         filtered = []
         
-        in_docstring = False
+        in_docstring_double = False
+        in_docstring_single = False
+        
         for line in lines:
             stripped = line.strip()
             
@@ -110,12 +112,18 @@ class ArsanAiAutocomplete(sublime_plugin.EventListener):
             if not stripped or stripped.startswith('#'):
                 continue
             
-            # Track multi-line strings/docstrings
-            if '"""' in line or "'''" in line:
-                in_docstring = not in_docstring
-                continue
+            # Count triple quotes to track docstring state
+            double_count = line.count('"""')
+            single_count = line.count("'''")
             
-            if in_docstring:
+            # Toggle docstring state based on count
+            if double_count % 2 == 1:
+                in_docstring_double = not in_docstring_double
+            if single_count % 2 == 1:
+                in_docstring_single = not in_docstring_single
+            
+            # Skip lines inside docstrings
+            if in_docstring_double or in_docstring_single:
                 continue
             
             # Skip import statements at start

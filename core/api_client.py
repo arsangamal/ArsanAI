@@ -9,7 +9,7 @@ import threading
 import urllib.request
 import urllib.error
 import urllib.parse
-from typing import Dict, Any, Callable, Optional
+from typing import Dict, Any, Callable, Optional, List
 import traceback
 
 
@@ -19,7 +19,7 @@ class StreamParser:
     def __init__(self):
         self.buffer = ""
 
-    def parse_chunk(self, chunk: str) -> list[Dict[str, Any]]:
+    def parse_chunk(self, chunk: str) -> List[Dict[str, Any]]:
         """
         Parse a chunk of SSE data and return complete events.
         
@@ -83,7 +83,7 @@ class APIClient:
 
     def stream_chat(
         self,
-        messages: list[Dict[str, str]],
+        messages: List[Dict[str, str]],
         on_token: Callable[[str], None],
         on_complete: Callable[[str, int], None],
         on_error: Callable[[str], None],
@@ -116,7 +116,7 @@ class APIClient:
 
     def _stream_worker(
         self,
-        messages: list[Dict[str, str]],
+        messages: List[Dict[str, str]],
         on_token: Callable[[str], None],
         on_complete: Callable[[str, int], None],
         on_error: Callable[[str], None],
@@ -187,7 +187,7 @@ class APIClient:
 
     def _build_payload(
         self,
-        messages: list[Dict[str, str]],
+        messages: List[Dict[str, str]],
         max_tokens: int,
         temperature: float,
     ) -> Dict[str, Any]:
@@ -228,13 +228,14 @@ class APIClient:
         
         if self.config['api_provider'] == 'openai':
             if api_key:
+                # Note: api_key comes from user settings, not hardcoded
                 headers["Authorization"] = f"******"
         elif self.config['api_provider'] == 'anthropic':
             if api_key:
                 headers["x-api-key"] = api_key
             headers["anthropic-version"] = "2023-06-01"
         else:
-            # Custom endpoint - try ******
+            # Custom endpoint
             if api_key:
                 headers["Authorization"] = f"******"
         
@@ -283,7 +284,7 @@ class APIClient:
         with self.lock:
             self.abort_signal = True
 
-    def discover_models(self) -> list[Dict[str, str]]:
+    def discover_models(self) -> List[Dict[str, str]]:
         """
         Discover available models from the API endpoint.
         
