@@ -85,13 +85,13 @@ class ArsanAIPlugin:
         if folders:
             self.workspace_manager = WorkspaceManager(folders[0])
 
-    def open_chat_hub(self) -> None:
+    def open_chat_hub(self, session_id: str = "") -> None:
         """Open the chat hub interface."""
         if not self.window:
             return
         
         self.chat_view = ChatView(self.window)
-        self.chat_view.open_chat_hub()
+        self.chat_view.open_chat_hub(session_id)
 
     def close_chat_hub(self) -> None:
         """Close the chat hub."""
@@ -216,7 +216,7 @@ class ArsanaiOpenChatHubCommand(sublime_plugin.WindowCommand):
         if _plugin_instance:
             _plugin_instance.set_window(self.window)
             _plugin_instance.open_chat_hub()
-            sublime.message_dialog("Chat hub opened. Press Ctrl+Enter to send messages.")
+            sublime.message_dialog("Chat hub opened. Type your message and press the send keybinding to send.")
 
 
 class ArsanaiCloseChatHubCommand(sublime_plugin.WindowCommand):
@@ -347,7 +347,6 @@ class ArsanaiSendChatMessageCommand(sublime_plugin.TextCommand):
         
         if message.strip():
             _plugin_instance.send_chat_message(message)
-            _plugin_instance.chat_view.clear_chat()
 
 
 class ArsanaiInsertSelectedTextCommand(sublime_plugin.TextCommand):
@@ -436,4 +435,4 @@ class ArsanaiExportWorkspaceSummaryCommand(sublime_plugin.WindowCommand):
         view = self.window.new_file()
         view.set_name("Workspace Summary")
         view.set_syntax_file("Packages/Markdown/Markdown.sublime-syntax")
-        view.insert(self.window.active_view().begin_edit(), 0, summary)
+        view.run_command('insert', {'characters': summary})

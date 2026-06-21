@@ -7,6 +7,7 @@ import sublime
 import re
 from typing import Callable, Optional
 import threading
+import traceback
 
 
 class ChatView:
@@ -64,6 +65,8 @@ class ChatView:
                 return True
             
             except Exception as e:
+                print(f"ArsanAI: Error opening chat hub: {e}")
+                print(traceback.format_exc())
                 return False
 
     def close_chat_hub(self) -> None:

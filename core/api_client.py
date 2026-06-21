@@ -224,15 +224,19 @@ class APIClient:
             "User-Agent": "ArsanAI/1.0",
         }
         
+        api_key = self.config.get('api_key', '')
+        
         if self.config['api_provider'] == 'openai':
-            api_key = self.config.get('api_key', '')
-            headers["Authorization"] = f"******"
+            if api_key:
+                headers["Authorization"] = f"******"
         elif self.config['api_provider'] == 'anthropic':
-            headers["x-api-key"] = self.config['api_key']
+            if api_key:
+                headers["x-api-key"] = api_key
             headers["anthropic-version"] = "2023-06-01"
         else:
-            api_key = self.config.get('api_key', '')
-            headers["Authorization"] = f"******"
+            # Custom endpoint - try ******
+            if api_key:
+                headers["Authorization"] = f"******"
         
         return headers
 

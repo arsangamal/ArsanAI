@@ -63,6 +63,8 @@ class MCPServer:
                 return True
             
             except Exception as e:
+                print(f"ArsanAI: Error starting MCP server '{self.name}': {e}")
+                print(traceback.format_exc())
                 return False
 
     def stop(self) -> None:

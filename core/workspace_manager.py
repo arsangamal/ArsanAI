@@ -136,7 +136,7 @@ class WorkspaceManager:
                 "",
                 "## Progress",
                 "",
-                "**Completed**: 0/{len(items)}",
+                f"**Completed**: 0/{len(items)}",
                 "",
             ])
             
