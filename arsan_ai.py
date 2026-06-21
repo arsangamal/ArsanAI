@@ -130,7 +130,11 @@ class ArsanAIPlugin:
         # Store in history (create new session if none exists)
         if not self.chat_view.current_session_id:
             title = message[:30] + ("..." if len(message) > 30 else "")
-            self.chat_view.current_session_id = self.history_manager.create_session(title=title)
+            model = self.settings.get('api', {}).get('model', 'unknown')
+            self.chat_view.current_session_id = self.history_manager.create_session(
+                title=title,
+                model=model
+            )
             
         self.history_manager.add_message(
             self.chat_view.current_session_id,
