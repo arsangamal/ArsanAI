@@ -1,0 +1,31 @@
+[
+    {
+        "id": "preferences",
+        "children": [
+            {
+                "id": "package-settings",
+                "children": [
+                    {
+                        "caption": "ArsanAI",
+                        "children": [
+                            {
+                                "caption": "Settings",
+                                "command": "open_file",
+                                "args": {
+                                    "file": "${packages}/ArsanAI/arsan_ai.sublime-settings"
+                                }
+                            },
+                            {
+                                "caption": "Settings – User",
+                                "command": "open_file",
+                                "args": {
+                                    "file": "${packages}/User/arsan_ai.sublime-settings"
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+]
