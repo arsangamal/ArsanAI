@@ -1,0 +1,16 @@
+[
+    {
+        "keys": ["ctrl+enter"],
+        "command": "arsan_ai_send_chat_message",
+        "context": [
+            { "key": "setting.arsan_ai_chat_view", "operator": "equal", "operand": true }
+        ]
+    },
+    {
+        "keys": ["escape"],
+        "command": "arsan_ai_stop_generation",
+        "context": [
+            { "key": "setting.arsan_ai_chat_view", "operator": "equal", "operand": true }
+        ]
+    }
+]

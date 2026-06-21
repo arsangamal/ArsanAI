@@ -58,6 +58,7 @@ class ChatView:
                 # Open new view in right column
                 self.view = self.window.new_file()
                 self.view.set_name("ArsanAI Chat")
+                self.view.settings().set("arsan_ai_chat_view", True)
                 self.view.set_syntax_file("Packages/Markdown/Markdown.sublime-syntax")
                 
                 # Move to group 1 (right side)
