@@ -6,7 +6,14 @@ Handles dynamic generation of workspace staging structures and blueprints.
 import os
 import json
 from datetime import datetime
-from typing import Dict, List, Any, Optional
+try:
+    from typing import Dict, List, Any, Optional
+except ImportError:
+    class _TypingStub(object):
+        def __getitem__(self, _item):
+            return self
+    _typing_stub = _TypingStub()
+    Dict = List = Any = Optional = _typing_stub
 import threading
 
 
@@ -47,7 +54,7 @@ class WorkspaceManager:
             Path to created blueprint file
         """
         with self.lock:
-            filename = f'ARSAN_{name.upper()}.md'
+            filename = 'ARSAN_{}.md'.format(name.upper())
             filepath = os.path.join(self.staging_dir, filename)
             
             content = self._generate_blueprint_content(name, description, sections)
@@ -65,11 +72,11 @@ class WorkspaceManager:
     ) -> str:
         """Generate markdown content for blueprint."""
         lines = [
-            f"# {name} Blueprint",
+            "# {} Blueprint".format(name),
             "",
             description,
             "",
-            f"**Created**: {datetime.now().isoformat()}",
+            "**Created**: {}".format(datetime.now().isoformat()),
             "",
             "## Overview",
             "",
@@ -79,11 +86,11 @@ class WorkspaceManager:
         
         if sections:
             for section_name, items in sections.items():
-                lines.append(f"## {section_name}")
+                lines.append("## {}".format(section_name))
                 lines.append("")
                 
                 for item in items:
-                    lines.append(f"- [ ] {item}")
+                    lines.append("- [ ] {}".format(item))
                 
                 lines.append("")
         
@@ -117,26 +124,26 @@ class WorkspaceManager:
             Path to created checklist file
         """
         with self.lock:
-            filename = f'ARSAN_CHECKLIST_{task_name.upper()}.md'
+            filename = 'ARSAN_CHECKLIST_{}.md'.format(task_name.upper())
             filepath = os.path.join(self.staging_dir, filename)
             
             lines = [
-                f"# {task_name} Checklist",
+                "# {} Checklist".format(task_name),
                 "",
-                f"**Created**: {datetime.now().isoformat()}",
+                "**Created**: {}".format(datetime.now().isoformat()),
                 "",
                 "## Tasks",
                 "",
             ]
             
             for item in items:
-                lines.append(f"- [ ] {item}")
+                lines.append("- [ ] {}".format(item))
             
             lines.extend([
                 "",
                 "## Progress",
                 "",
-                f"**Completed**: 0/{len(items)}",
+                "**Completed**: 0/{}".format(len(items)),
                 "",
             ])
             
@@ -161,7 +168,7 @@ class WorkspaceManager:
             Path to created context file
         """
         with self.lock:
-            filename = f'arsan_{context_type}.json'
+            filename = 'arsan_{}.json'.format(context_type)
             filepath = os.path.join(self.staging_dir, filename)
             
             context = {
@@ -308,9 +315,9 @@ class WorkspaceManager:
             "# Workspace Summary",
             "",
             "## Project Structure",
-            f"- **Root**: {structure['root']}",
-            f"- **Total Files**: {structure['file_count']}",
-            f"- **Languages**: {', '.join(structure['languages']) or 'None detected'}",
+            "- **Root**: {}".format(structure['root']),
+            "- **Total Files**: {}".format(structure['file_count']),
+            "- **Languages**: {}".format(', '.join(structure['languages']) or 'None detected'),
             "",
             "## Active Blueprints",
             "",
@@ -318,13 +325,13 @@ class WorkspaceManager:
         
         if blueprints:
             for blueprint in blueprints:
-                lines.append(f"- {blueprint}")
+                lines.append("- {}".format(blueprint))
         else:
             lines.append("No active blueprints.")
         
         lines.extend([
             "",
-            f"**Generated**: {datetime.now().isoformat()}",
+            "**Generated**: {}".format(datetime.now().isoformat()),
         ])
         
         return "\n".join(lines)

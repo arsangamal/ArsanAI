@@ -10,7 +10,14 @@ would need to be integrated with the API client to make real-time API calls.
 import sublime
 import sublime_plugin
 import threading
-from typing import Optional, List, Dict, Any
+try:
+    from typing import Optional, List, Dict, Any
+except ImportError:
+    class _TypingStub(object):
+        def __getitem__(self, _item):
+            return self
+    _typing_stub = _TypingStub()
+    Optional = List = Dict = Any = _typing_stub
 
 
 class ArsanAiAutocomplete(sublime_plugin.EventListener):
@@ -157,13 +164,13 @@ class ArsanAiAutocomplete(sublime_plugin.EventListener):
         
         try:
             # Build prompt for completion
-            prompt = f"""Given the following code context:
+            prompt = """Given the following code context:
 
-{context}
+{}
 
-The user has typed: {prefix}
+The user has typed: {}
 
-Suggest the next 5 lines of code to complete this. Return ONLY the code, no explanation."""
+Suggest the next 5 lines of code to complete this. Return ONLY the code, no explanation.""".format(context, prefix)
             
             messages = [
                 {"role": "system", "content": "You are a code completion assistant. Provide concise, accurate completions."},
@@ -195,9 +202,9 @@ Suggest the next 5 lines of code to complete this. Return ONLY the code, no expl
         """
         # Placeholder completions
         suggestions = [
-            f"{prefix}_1",
-            f"{prefix}_2",
-            f"{prefix}_test",
+            "{}_1".format(prefix),
+            "{}_2".format(prefix),
+            "{}_test".format(prefix),
         ]
         
         items = [
@@ -205,7 +212,7 @@ Suggest the next 5 lines of code to complete this. Return ONLY the code, no expl
                 trigger=s,
                 completion=s,
                 kind=(sublime.KIND_SNIPPET, "c", "Completion"),
-                details=f"AI suggestion: {s}",
+                details="AI suggestion: {}".format(s),
             )
             for s in suggestions
         ]
@@ -284,7 +291,7 @@ class ShowCompletionPreviewCommand(sublime_plugin.TextCommand):
         # Create phantom for preview
         phantom_set = sublime.PhantomSet(self.view, "arsan_completion_preview")
         
-        html_content = f"""
+        html_content = """
         <style>
             .arsan-preview {{
                 background-color: color(var(--foreground) alpha(0.05));
@@ -293,8 +300,8 @@ class ShowCompletionPreviewCommand(sublime_plugin.TextCommand):
                 margin-top: 4px;
             }}
         </style>
-        <div class="arsan-preview">{preview_html}</div>
-        """
+        <div class="arsan-preview">{}</div>
+        """.format(preview_html)
         
         phantom = sublime.Phantom(
             line,

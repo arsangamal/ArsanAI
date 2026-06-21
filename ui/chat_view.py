@@ -5,7 +5,14 @@ Manages split-screen chat interface and streaming content rendering.
 
 import sublime
 import re
-from typing import Callable, Optional
+try:
+    from typing import Callable, Optional
+except ImportError:
+    class _TypingStub(object):
+        def __getitem__(self, _item):
+            return self
+    _typing_stub = _TypingStub()
+    Callable = Optional = _typing_stub
 import threading
 import traceback
 
@@ -66,7 +73,7 @@ class ChatView:
                 return True
             
             except Exception as e:
-                print(f"ArsanAI: Error opening chat hub: {e}")
+                print("ArsanAI: Error opening chat hub: {}".format(e))
                 print(traceback.format_exc())
                 return False
 
@@ -109,11 +116,11 @@ class ChatView:
         
         # Format message
         if role == "user":
-            formatted = f"\n**You:**\n{content}\n"
+            formatted = "\n**You:**\n{}\n".format(content)
             # Reset flag for next assistant response
             self.assistant_header_written = False
         else:
-            formatted = f"\n**Assistant:**\n{content}\n"
+            formatted = "\n**Assistant:**\n{}\n".format(content)
             # Mark that we've written the header
             self.assistant_header_written = True
         
@@ -229,7 +236,7 @@ Welcome to your AI assistant. Type your message below and press Ctrl+Enter (Cmd+
         Returns:
             Formatted code block
         """
-        return f"```{language}\n{code}\n```"
+        return "```{}\n{}\n```".format(language, code)
 
     def insert_phantom_preview(
         self,

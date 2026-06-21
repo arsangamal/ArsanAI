@@ -25,7 +25,7 @@ try:
     from ui.chat_view import ChatView
     from ui.autocomplete import ArsanAiAutocomplete
 except ImportError as e:
-    print(f"ArsanAI: Import error during plugin load: {e}")
+    print("ArsanAI: Import error during plugin load: {}".format(e))
     traceback.print_exc()
     raise
 
@@ -48,13 +48,13 @@ class ArsanAIPlugin:
         )
         os.makedirs(self.cache_dir, exist_ok=True)
         
-        self.api_client: APIClient = None
+        self.api_client = None
         self.history_manager = HistoryManager(self.cache_dir)
-        self.mcp_coordinator: MCPCoordinator = None
-        self.workspace_manager: WorkspaceManager = None
-        self.chat_view: ChatView = None
-        self.autocomplete: ArsanAiAutocomplete = None
-        self.window: sublime.Window = None
+        self.mcp_coordinator = None
+        self.workspace_manager = None
+        self.chat_view = None
+        self.autocomplete = None
+        self.window = None
         
         self._load_settings()
         self._initialize_subsystems()
@@ -78,7 +78,7 @@ class ArsanAIPlugin:
                 try:
                     self.api_client = APIClient(api_config)
                 except Exception as e:
-                    print(f"ArsanAI: Error initializing API client: {e}")
+                    print("ArsanAI: Error initializing API client: {}".format(e))
                     self.api_client = None
             
             # Initialize MCP coordinator
@@ -87,11 +87,11 @@ class ArsanAIPlugin:
                 try:
                     self.mcp_coordinator = MCPCoordinator(mcp_config)
                 except Exception as e:
-                    print(f"ArsanAI: Error initializing MCP coordinator: {e}")
+                    print("ArsanAI: Error initializing MCP coordinator: {}".format(e))
                     self.mcp_coordinator = None
         
         except Exception as e:
-            print(f"ArsanAI: Error initializing subsystems: {e}")
+            print("ArsanAI: Error initializing subsystems: {}".format(e))
             traceback.print_exc()
 
     def set_window(self, window: sublime.Window) -> None:
@@ -213,14 +213,14 @@ def plugin_loaded() -> None:
             if hasattr(_plugin_instance, 'chat_view') and _plugin_instance.chat_view:
                 _plugin_instance.chat_view.close_chat_hub()
         except Exception as e:
-            print(f"ArsanAI: Error cleaning up previous instance: {e}")
+            print("ArsanAI: Error cleaning up previous instance: {}".format(e))
         _plugin_instance = None
     
     try:
         _plugin_instance = ArsanAIPlugin()
         print("ArsanAI plugin loaded successfully")
     except Exception as e:
-        print(f"ArsanAI: Failed to load plugin: {e}")
+        print("ArsanAI: Failed to load plugin: {}".format(e))
         traceback.print_exc()
         _plugin_instance = None
 
@@ -238,7 +238,7 @@ def plugin_unloaded() -> None:
             if _plugin_instance.chat_view:
                 _plugin_instance.chat_view.close_chat_hub()
         except Exception as e:
-            print(f"ArsanAI: Error during cleanup: {e}")
+            print("ArsanAI: Error during cleanup: {}".format(e))
     
     _plugin_instance = None
     
@@ -250,10 +250,10 @@ def plugin_unloaded() -> None:
         key for key in sys.modules.keys()
         if key == 'arsan_ai' or 
            key.startswith('arsan_ai.') or
-           key.startswith(f'{package_name}.core.') or
-           key.startswith(f'{package_name}.ui.') or
-           key == f'{package_name}.core' or
-           key == f'{package_name}.ui'
+            key.startswith('{}.core.'.format(package_name)) or
+            key.startswith('{}.ui.'.format(package_name)) or
+            key == '{}.core'.format(package_name) or
+            key == '{}.ui'.format(package_name)
     ]
     for module_name in modules_to_remove:
         try:
@@ -314,12 +314,11 @@ class ArsanaiSelectModelCommand(sublime_plugin.WindowCommand):
         def on_select(index: int) -> None:
             if index >= 0:
                 selected_model = models[index]
-                _plugin_instance.settings.set('api', {
-                    **_plugin_instance.settings.get('api', {}),
-                    'model': selected_model.get('id')
-                })
+                api_settings = dict(_plugin_instance.settings.get('api', {}))
+                api_settings['model'] = selected_model.get('id')
+                _plugin_instance.settings.set('api', api_settings)
                 sublime.save_settings('arsan_ai.sublime-settings')
-                sublime.status_message(f"Model set to: {selected_model.get('name')}")
+                sublime.status_message("Model set to: {}".format(selected_model.get('name')))
         
         self.window.show_quick_panel(model_names, on_select)
 
@@ -450,7 +449,7 @@ class ArsanaiRequestCompletionCommand(sublime_plugin.TextCommand):
         messages = [
             {
                 "role": "user",
-                "content": f"Complete this code:\n\n{selected_text}"
+                "content": "Complete this code:\n\n{}".format(selected_text)
             }
         ]
         
@@ -459,14 +458,14 @@ class ArsanaiRequestCompletionCommand(sublime_plugin.TextCommand):
         def on_token(token: str) -> None:
             nonlocal completion_text
             completion_text += token
-            sublime.status_message(f"Generating... ({len(completion_text)} chars)")
+            sublime.status_message("Generating... ({} chars)".format(len(completion_text)))
         
         def on_complete(text: str, token_count: int) -> None:
             # Insert completion
             self.view.run_command('insert', {'characters': completion_text})
         
         def on_error(error: str) -> None:
-            sublime.message_dialog(f"Error: {error}")
+            sublime.message_dialog("Error: {}".format(error))
         
         _plugin_instance.api_client.stream_chat(
             messages,

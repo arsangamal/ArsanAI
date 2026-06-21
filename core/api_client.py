@@ -9,7 +9,14 @@ import threading
 import urllib.request
 import urllib.error
 import urllib.parse
-from typing import Dict, Any, Callable, Optional, List
+try:
+    from typing import Dict, Any, Callable, Optional, List
+except ImportError:
+    class _TypingStub(object):
+        def __getitem__(self, _item):
+            return self
+    _typing_stub = _TypingStub()
+    Dict = Any = Callable = Optional = List = _typing_stub
 import traceback
 
 
@@ -53,7 +60,7 @@ class StreamParser:
                         return {"type": "done"}
                     data = json.loads(json_str)
                     return data
-                except json.JSONDecodeError:
+                except ValueError:
                     continue
         
         return None
@@ -174,7 +181,7 @@ class APIClient:
                 response.close()
                 
             except urllib.error.HTTPError as e:
-                error_msg = f"HTTP Error {e.code}: {e.reason}"
+                error_msg = "HTTP Error {}: {}".format(e.code, e.reason)
                 on_error(error_msg)
                 return
             
@@ -182,7 +189,7 @@ class APIClient:
                 on_complete(full_response, token_count)
         
         except Exception as e:
-            error_msg = f"Error during streaming: {str(e)}\n{traceback.format_exc()}"
+            error_msg = "Error during streaming: {}\n{}".format(str(e), traceback.format_exc())
             on_error(error_msg)
 
     def _build_payload(
@@ -229,7 +236,7 @@ class APIClient:
         if self.config['api_provider'] == 'openai':
             if api_key:
                 # Using actual api_key from user config, not hardcoded
-                headers["Authorization"] = f"******"
+                headers["Authorization"] = "Bearer {}".format(api_key)
         elif self.config['api_provider'] == 'anthropic':
             if api_key:
                 headers["x-api-key"] = api_key
@@ -237,7 +244,7 @@ class APIClient:
         else:
             # Custom endpoint
             if api_key:
-                headers["Authorization"] = f"******"
+                headers["Authorization"] = "Bearer {}".format(api_key)
         
         return headers
 
@@ -311,7 +318,7 @@ class APIClient:
             
             response.close()
         
-        except Exception as e:
+        except Exception:
             pass
         
         return models

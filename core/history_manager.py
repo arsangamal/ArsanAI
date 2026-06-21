@@ -6,7 +6,14 @@ Manages disk-persisted local JSON chat histories and session tracking.
 import json
 import os
 from datetime import datetime
-from typing import Dict, List, Any, Optional
+try:
+    from typing import Dict, List, Any, Optional
+except ImportError:
+    class _TypingStub(object):
+        def __getitem__(self, _item):
+            return self
+    _typing_stub = _TypingStub()
+    Dict = List = Any = Optional = _typing_stub
 import threading
 
 
@@ -66,7 +73,7 @@ class HistoryManager:
         }
         
         with self.lock:
-            session_file = os.path.join(self.sessions_dir, f'{session_id}.json')
+            session_file = os.path.join(self.sessions_dir, '{}.json'.format(session_id))
             with open(session_file, 'w') as f:
                 json.dump(session, f, indent=2)
             
@@ -91,7 +98,7 @@ class HistoryManager:
             token_count: Number of tokens in this message
         """
         with self.lock:
-            session_file = os.path.join(self.sessions_dir, f'{session_id}.json')
+            session_file = os.path.join(self.sessions_dir, '{}.json'.format(session_id))
             
             if not os.path.exists(session_file):
                 return
@@ -120,7 +127,7 @@ class HistoryManager:
             Session dict or None if not found
         """
         with self.lock:
-            session_file = os.path.join(self.sessions_dir, f'{session_id}.json')
+            session_file = os.path.join(self.sessions_dir, '{}.json'.format(session_id))
             
             if not os.path.exists(session_file):
                 return None
@@ -128,7 +135,7 @@ class HistoryManager:
             try:
                 with open(session_file, 'r') as f:
                     return json.load(f)
-            except (json.JSONDecodeError, IOError):
+            except (ValueError, IOError):
                 return None
 
     def list_sessions(self, limit: int = 50) -> List[Dict[str, str]]:
@@ -149,7 +156,7 @@ class HistoryManager:
                 sessions = index.get('sessions', [])
                 return sessions[-limit:][::-1]
             
-            except (json.JSONDecodeError, IOError):
+            except (ValueError, IOError):
                 return []
 
     def delete_session(self, session_id: str) -> None:
@@ -160,7 +167,7 @@ class HistoryManager:
             session_id: Session ID
         """
         with self.lock:
-            session_file = os.path.join(self.sessions_dir, f'{session_id}.json')
+            session_file = os.path.join(self.sessions_dir, '{}.json'.format(session_id))
             if os.path.exists(session_file):
                 os.remove(session_file)
             
@@ -171,7 +178,7 @@ class HistoryManager:
         try:
             with open(self.sessions_index, 'r') as f:
                 index = json.load(f)
-        except (json.JSONDecodeError, IOError):
+        except (ValueError, IOError):
             index = {'sessions': []}
         
         index['sessions'].append({
@@ -188,7 +195,7 @@ class HistoryManager:
         try:
             with open(self.sessions_index, 'r') as f:
                 index = json.load(f)
-        except (json.JSONDecodeError, IOError):
+        except (ValueError, IOError):
             return
         
         index['sessions'] = [
@@ -221,7 +228,7 @@ class HistoryManager:
             new_title: New title
         """
         with self.lock:
-            session_file = os.path.join(self.sessions_dir, f'{session_id}.json')
+            session_file = os.path.join(self.sessions_dir, '{}.json'.format(session_id))
             
             if not os.path.exists(session_file):
                 return
@@ -238,7 +245,7 @@ class HistoryManager:
             try:
                 with open(self.sessions_index, 'r') as f:
                     index = json.load(f)
-            except (json.JSONDecodeError, IOError):
+            except (ValueError, IOError):
                 return
             
             for s in index['sessions']:

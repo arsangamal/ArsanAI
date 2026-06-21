@@ -7,7 +7,14 @@ import json
 import subprocess
 import threading
 import os
-from typing import Dict, Any, List, Optional, Callable
+try:
+    from typing import Dict, Any, List, Optional, Callable
+except ImportError:
+    class _TypingStub(object):
+        def __getitem__(self, _item):
+            return self
+    _typing_stub = _TypingStub()
+    Dict = Any = List = Optional = Callable = _typing_stub
 import traceback
 
 
@@ -56,14 +63,14 @@ class MCPServer:
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
                     env=env,
-                    text=True,
+                    universal_newlines=True,
                     bufsize=1,
                 )
                 
                 return True
             
             except Exception as e:
-                print(f"ArsanAI: Error starting MCP server '{self.name}': {e}")
+                print("ArsanAI: Error starting MCP server '{}': {}".format(self.name, e))
                 print(traceback.format_exc())
                 return False
 
@@ -113,7 +120,7 @@ class MCPServer:
         try:
             with self.lock:
                 if self.process is None:
-                    on_error(f"MCP server '{self.name}' is not running")
+                    on_error("MCP server '{}' is not running".format(self.name))
                     return
                 
                 request = {
@@ -132,7 +139,7 @@ class MCPServer:
                 
                 response_line = self.process.stdout.readline()
                 if not response_line:
-                    on_error(f"No response from MCP server '{self.name}'")
+                    on_error("No response from MCP server '{}'".format(self.name))
                     return
                 
                 response = json.loads(response_line)
@@ -148,10 +155,10 @@ class MCPServer:
                 else:
                     on_error("Invalid response from MCP server")
         
-        except json.JSONDecodeError as e:
-            on_error(f"JSON decode error: {str(e)}")
+        except ValueError as e:
+            on_error("JSON decode error: {}".format(str(e)))
         except Exception as e:
-            on_error(f"Tool call error: {str(e)}\n{traceback.format_exc()}")
+            on_error("Tool call error: {}\n{}".format(str(e), traceback.format_exc()))
 
 
 class MCPCoordinator:
@@ -213,7 +220,7 @@ class MCPCoordinator:
         """
         with self.lock:
             if server_name not in self.servers:
-                on_error(f"Unknown MCP server: {server_name}")
+                on_error("Unknown MCP server: {}".format(server_name))
                 return
             
             server = self.servers[server_name]
